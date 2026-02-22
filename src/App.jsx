@@ -6,6 +6,7 @@ import { ProblemDetailView } from "./views/ProblemDetailView";
 import { InterviewsListView } from "./views/InterviewsListView";
 import { InterviewDetailView } from "./views/InterviewDetailView";
 import { CategoryView } from "./views/CategoryView";
+import { PlannerView } from "./views/PlannerView";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/interviews" element={<InterviewsListView />} />
           <Route path="/interviews/:id" element={<InterviewDetailView />} />
           <Route path="/categories/:id" element={<CategoryView />} />
+          <Route path="/planner" element={<PlannerView />} />
         </Routes>
       </main>
     </div>
