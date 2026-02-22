@@ -1,10 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import { Briefcase, ArrowRight } from "lucide-react";
-import { MOCK_INTERVIEWS, MAIN_TRACKS } from "../data/interviews";
+import { useInterviews } from "../hooks/useInterviews";
 
 export function InterviewsListView() {
   const navigate = useNavigate();
-  const mainTracks = MAIN_TRACKS.map((id) => MOCK_INTERVIEWS[id]);
+  const { interviews, mainTracks, loading } = useInterviews();
+  const tracks = mainTracks.map((id) => interviews[id]).filter(Boolean);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-48 rounded-xl bg-slate-900/50 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -13,7 +24,7 @@ export function InterviewsListView() {
         <p className="text-slate-500">Select your target industry to access curated roadmaps, problems, and discussions.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mainTracks.map((track) => (
+        {tracks.map((track) => (
           <div
             key={track.id}
             onClick={() => navigate(`/interviews/${track.id}`)}
@@ -31,7 +42,7 @@ export function InterviewsListView() {
               {track.description}
             </p>
             <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-              <span>{track.problemFilter.tags.length} Topics</span>
+              <span>{track.filter_tags?.length ?? 0} Topics</span>
               <span className="flex items-center gap-1 group-hover:text-indigo-400 transition-colors">
                 Explore Track <ArrowRight size={14} />
               </span>

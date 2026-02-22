@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MOCK_PROBLEMS } from "../data/problems";
+import { supabase } from "../lib/supabase";
 
 export function useInterviewProblems(problemFilter) {
   const [problems, setProblems] = useState([]);
@@ -7,18 +7,53 @@ export function useInterviewProblems(problemFilter) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!problemFilter) return;
+    if (!problemFilter?.tags?.length) return;
     setLoading(true);
-    const timer = setTimeout(() => {
-      const filtered = MOCK_PROBLEMS.filter((p) =>
-        p.tags.some((tag) => problemFilter.tags.includes(tag))
-      );
-      const uniqueCategories = [...new Set(filtered.map((p) => p.category))];
-      setProblems(filtered);
-      setCategories(uniqueCategories);
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+
+    supabase
+      .from("problem_tags")
+      .select(`
+        problems(
+          *,
+          hints(order, text),
+          problem_tags(tags(name)),
+          problem_categories(categories(name, id))
+        ),
+        tags!inner(name)
+      `)
+      .in("tags.name", problemFilter.tags)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const seen = new Set();
+          const normalized = data
+            .map((row) => row.problems)
+            .filter((p) => {
+              if (!p || seen.has(p.id)) return false;
+              seen.add(p.id);
+              return true;
+            })
+            .map((p) => ({
+              ...p,
+              tags: p.problem_tags.map((pt) => pt.tags.name),
+              categories: p.problem_categories.map((pc) => ({
+                id: pc.categories.id,
+                name: pc.categories.name,
+              })),
+              hints: p.hints
+                .sort((a, b) => a.order - b.order)
+                .map((h) => h.text),
+            }));
+
+          // unique categories with id preserved for navigation
+          const catMap = new Map();
+          normalized.forEach((p) =>
+            p.categories.forEach((c) => catMap.set(c.id, c))
+          );
+          setProblems(normalized);
+          setCategories([...catMap.values()]);
+        }
+        setLoading(false);
+      });
   }, [problemFilter]);
 
   return { problems, categories, loading };

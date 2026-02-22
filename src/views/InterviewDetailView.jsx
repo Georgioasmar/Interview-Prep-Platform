@@ -1,35 +1,35 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowRight, ChevronRight, Layers, Code,
-  MessageSquare, Pin, Users,
-} from "lucide-react";
-import { MOCK_INTERVIEWS } from "../data/interviews";
+import { ArrowRight, ChevronRight, Layers, Code, MessageSquare, Pin, Users } from "lucide-react";
+import { useInterviews } from "../hooks/useInterviews";
 import { useInterviewProblems } from "../hooks/useInterviewProblems";
 
 export function InterviewDetailView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("practice");
-  const track = MOCK_INTERVIEWS[id];
 
-  const { problems, categories, loading } = useInterviewProblems(
-    track?.problemFilter
+  const { interviews, loading: trackLoading } = useInterviews();
+  const track = interviews[id];
+  const { problems, categories, loading: problemsLoading } = useInterviewProblems(track?.problemFilter);
+
+  const loading = trackLoading || problemsLoading;
+
+  // show spinner while loading — don't show not found until we're sure
+  if (loading) return (
+    <div className="flex justify-center py-32">
+      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+    </div>
   );
 
-  if (!track) {
-    return (
-      <div className="text-center py-20 text-slate-500">
-        <p className="text-xl font-bold mb-4">Track not found.</p>
-        <button
-          onClick={() => navigate("/interviews")}
-          className="text-sm text-indigo-400 hover:text-indigo-300"
-        >
-          Back to tracks
-        </button>
-      </div>
-    );
-  }
+  if (!track) return (
+    <div className="text-center py-20 text-slate-500">
+      <p className="text-xl font-bold mb-4">Track not found.</p>
+      <button onClick={() => navigate("/interviews")} className="text-sm text-indigo-400 hover:text-indigo-300">
+        Back to tracks
+      </button>
+    </div>
+  );
 
   return (
     <div className="animate-in fade-in duration-500 max-w-5xl mx-auto">
@@ -107,11 +107,13 @@ export function InterviewDetailView() {
                 {/* Category cards — clicking navigates to filtered problems */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                   {categories.map((cat) => {
-                    const count = problems.filter((p) => p.category === cat).length;
+                    const count = problems.filter((p) =>
+                      p.categories?.some((c) => c.id === cat.id)
+                    ).length;
                     return (
                       <div
-                        key={cat}
-                        onClick={() => navigate(`/problems?category=${cat}`)}
+                        key={cat.id}
+                        onClick={() => navigate(`/categories/${cat.id}`)}
                         className="flex items-center justify-between p-5 rounded-xl border border-slate-800 bg-[#0d0d0f] hover:border-slate-600 transition-colors group cursor-pointer"
                       >
                         <div className="flex items-center gap-4">
@@ -119,7 +121,7 @@ export function InterviewDetailView() {
                             <Code size={20} />
                           </div>
                           <div>
-                            <span className="font-bold text-slate-200 block">{cat}</span>
+                            <span className="font-bold text-slate-200 block">{cat.name}</span>
                             <span className="text-xs text-slate-500">{count} problem{count !== 1 ? "s" : ""}</span>
                           </div>
                         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MOCK_PROBLEMS } from "../data/problems";
+import { supabase } from "../lib/supabase";
 
 export function useProblems(enabled) {
   const [problems, setProblems] = useState([]);
@@ -10,16 +10,35 @@ export function useProblems(enabled) {
     if (!enabled) return;
     setLoading(true);
     setError(null);
-    const timer = setTimeout(() => {
-      try {
-        setProblems(MOCK_PROBLEMS);
-      } catch (err) {
-        setError(err.message);
-      } finally {
+
+    supabase
+      .from("problems")
+      .select(`
+        *,
+        hints(order, text),
+        problem_tags(tags(name)),
+        problem_categories(categories(name, id))
+      `)
+      .order("title")
+      .then(({ data, error }) => {
+        if (error) {
+          setError(error.message);
+        } else {
+          const normalized = data.map((p) => ({
+            ...p,
+            tags: p.problem_tags.map((pt) => pt.tags.name),
+            categories: p.problem_categories.map((pc) => ({
+              id: pc.categories.id,
+              name: pc.categories.name,
+            })),
+            hints: p.hints
+              .sort((a, b) => a.order - b.order)
+              .map((h) => h.text),
+          }));
+          setProblems(normalized);
+        }
         setLoading(false);
-      }
-    }, 600);
-    return () => clearTimeout(timer);
+      });
   }, [enabled]);
 
   return { problems, loading, error };

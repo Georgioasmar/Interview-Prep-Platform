@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BookOpen, ChevronDown, ChevronUp, Code, Trophy, Lightbulb, Info, ChevronRight, ArrowLeft } from "lucide-react";
-import { MOCK_PROBLEMS } from "../data/problems";
 import { MathRenderer } from "../components/MathRenderer";
+import { useProblem } from "../hooks/useProblem";
 
 function HintAccordion({ hints }) {
   const [openHints, setOpenHints] = useState({});
@@ -81,7 +81,7 @@ function TheoryPanel({ problem }) {
       <div className="p-6 text-sm text-slate-400 leading-relaxed space-y-4">
         <p className="font-bold text-slate-200">Prerequisite Concepts:</p>
         <div className="p-4 bg-indigo-500/5 border-l-2 border-indigo-500 rounded-r-lg">
-          <p className="italic text-xs">{problem.courseMaterial}</p>
+          <p className="italic text-xs">{problem.course_material}</p>
         </div>
         <ul className="space-y-2 text-xs">
           <li className="flex items-center gap-2"><ChevronRight size={12} className="text-indigo-500" /> Integration by parts</li>
@@ -99,18 +99,22 @@ function TheoryPanel({ problem }) {
 export function ProblemDetailView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const problem = MOCK_PROBLEMS.find((p) => p.id === Number(id));
+  const { problem, loading, error } = useProblem(id);
 
-  if (!problem) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 text-slate-500">
-        <p className="text-xl font-bold mb-4">Problem not found.</p>
-        <button onClick={() => navigate("/problems")} className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300">
-          <ArrowLeft size={16} /> Back to problems
-        </button>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex justify-center py-32">
+      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (error || !problem) return (
+    <div className="flex flex-col items-center justify-center py-32 text-slate-500">
+      <p className="text-xl font-bold mb-4">Problem not found.</p>
+      <button onClick={() => navigate("/problems")} className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300">
+        <ArrowLeft size={16} /> Back to problems
+      </button>
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -124,13 +128,13 @@ export function ProblemDetailView() {
               <Code size={18} className="text-indigo-500" /> Challenge Description
             </h2>
             <span className="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded">
-              {problem.category}
+              {problem.tags?.join(", ")}
             </span>
           </div>
           <div className="p-8 space-y-6">
             <h1 className="text-2xl font-bold">{problem.title}</h1>
             <div className="text-slate-300 leading-relaxed text-lg border-l-4 border-indigo-600 pl-4 bg-indigo-950/10 py-4">
-              <MathRenderer>{problem.problemText}</MathRenderer>
+              <MathRenderer>{problem.problem_text}</MathRenderer>
             </div>
             {problem.context && (
               <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg">
@@ -140,10 +144,10 @@ export function ProblemDetailView() {
                 <p className="text-slate-400 text-sm italic">{problem.context}</p>
               </div>
             )}
-            <HintAccordion hints={problem.hints} />
+            <HintAccordion hints={problem.hints ?? []} />
           </div>
         </div>
-        <AnswerSubmitter correctAnswer={problem.correctAnswer} />
+        <AnswerSubmitter correctAnswer={problem.correct_answer} />
       </div>
       <div className="lg:col-span-4">
         <TheoryPanel problem={problem} />
